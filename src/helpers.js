@@ -1,5 +1,5 @@
 // returns a new date shifted a certain number of days (can be negative)
-import { MILLISECONDS_IN_ONE_DAY } from './constants';
+import { CSS_PSEDUO_NAMESPACE, MILLISECONDS_IN_ONE_DAY } from './constants';
 
 export function shiftDate(date, numDays) {
   const newDate = new Date(date);
@@ -43,4 +43,8 @@ export function getISODate(date) {
     .toISOString()
     .split('T')
     .shift();
+}
+
+export function cssSelector(suffix) {
+  return `${CSS_PSEDUO_NAMESPACE}-${suffix}`;
 }

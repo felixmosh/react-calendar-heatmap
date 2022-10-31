@@ -18,3 +18,8 @@ export const MONTH_LABELS = [
 ];
 
 export const DAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
+
+export const SQUARE_SIZE = 10;
+export const LABEL_GUTTER_SIZE = 4;
+export const CSS_PSEDUO_NAMESPACE = 'react-calendar-heatmap';
+export const HORIZONTAL_WEEKDAY_LABELS_SIZE = 30;

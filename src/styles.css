@@ -4,6 +4,9 @@
  * All of the styles in this file are optional and configurable!
  * The github and gitlab color scales are provided for reference.
  */
+.react-calendar-heatmap {
+  direction: ltr;
+}
 
 .react-calendar-heatmap text {
   font-size: 10px;
