@@ -182,7 +182,7 @@ describe('CalendarHeatmap props', () => {
     // in case if horizontal prop value is false
     rerender(<CalendarHeatmap values={[]} horizontal={false} showWeekdayLabels />);
 
-    expect(container.querySelectorAll('text.react-calendar-heatmap-small-text')).toHaveLength(3);
+    expect(container.querySelectorAll('text.react-calendar-heatmap-small-text')).toHaveLength(4);
   });
 
   it('transformDayElement', () => {

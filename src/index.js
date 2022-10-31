@@ -296,7 +296,7 @@ class CalendarHeatmap extends React.Component {
         'weekday-label',
       )}`;
       // eslint-disable-next-line no-bitwise
-      return dayIndex & 1 ? (
+      return dayIndex % 2 === 0 ? (
         <text key={`${x}${y}`} x={x} y={y} className={cssClasses}>
           {weekdayLabel}
         </text>
