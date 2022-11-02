@@ -336,7 +336,7 @@ describe('layout', () => {
       const numOfWeeks = container.querySelectorAll(`.${cssSelector('week')}`).length;
 
       expect(+width).toBe(squareWithGutter * numOfWeeks);
-      expect(+height).toBe(squareWithGutter * DAYS_IN_WEEK);
+      expect(+height).toBe(squareWithGutter * DAYS_IN_WEEK + LABEL_GUTTER_SIZE);
     });
 
     it('should anchor the weekday labels to end', () => {
