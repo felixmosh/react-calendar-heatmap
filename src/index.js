@@ -201,9 +201,9 @@ class CalendarHeatmap extends React.Component {
     return [0, (weekIndex + 1) * this.getSquareSizeWithGutter() + verticalOffset];
   }
 
-  handleClick(value) {
+  handleClick(e, value) {
     if (this.props.onClick) {
-      this.props.onClick(value);
+      this.props.onClick(e, value);
     }
   }
 
@@ -240,7 +240,7 @@ class CalendarHeatmap extends React.Component {
         x={x}
         y={y}
         className={this.getClassNameForIndex(index)}
-        onClick={() => this.handleClick(value)}
+        onClick={(e) => this.handleClick(e, value)}
         onMouseOver={(e) => this.handleMouseOver(e, value)}
         onMouseLeave={(e) => this.handleMouseLeave(e, value)}
         {...this.getTooltipDataAttrsForIndex(index)}
@@ -295,7 +295,7 @@ class CalendarHeatmap extends React.Component {
       const cssClasses = `${this.props.horizontal ? '' : cssSelector('small-text')} ${cssSelector(
         'weekday-label',
       )}`;
-      // eslint-disable-next-line no-bitwise
+
       return dayIndex % 2 === 0 ? (
         <text key={`${x}${y}`} x={x} y={y} className={cssClasses}>
           {weekdayLabel}

@@ -282,7 +282,7 @@ describe('CalendarHeatmap props', () => {
       const rect = container.querySelector('rect');
       await user.click(rect);
 
-      expect(onClick).toHaveBeenCalledWith(expectedValue);
+      expect(onClick).toHaveBeenCalledWith(expect.any(Object), expectedValue);
     });
 
     it('calls props.onMouseOver with the correct value', async () => {
