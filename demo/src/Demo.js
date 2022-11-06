@@ -28,7 +28,16 @@ function generateRandomValues(count, date = new Date()) {
     };
   });
 }
+const hebMonthLabels = Array.from({ length: 12 }, (_, i) =>
+  new Intl.DateTimeFormat('he', { month: 'short' }).format(new Date(2022, i, 15)),
+);
+const hebWeekdayLabels = Array.from({ length: 7 }, (_, i) =>
+  new Intl.DateTimeFormat('he', { weekday: 'short' }).format(new Date(2022, 11, 4 + i)),
+);
 
+const engWeekdayLabels = Array.from({ length: 7 }, (_, i) =>
+  new Intl.DateTimeFormat('en', { weekday: 'short' }).format(new Date(2022, 11, 4 + i)),
+);
 class Demo extends React.Component {
   state = {
     values: generateRandomValues(200),
@@ -61,7 +70,50 @@ class Demo extends React.Component {
         <div className="row">
           <div className="col-12 col-sm-6">
             <CalendarHeatmap
+              startDate="2022-06-01"
               values={this.state.values}
+              dir="rtl"
+              classForValue={(value) => {
+                if (!value) {
+                  return 'color-empty';
+                }
+                return `color-github-${value.count}`;
+              }}
+              showWeekdayLabels={true}
+              monthLabels={hebMonthLabels}
+              weekdayLabels={hebWeekdayLabels}
+              tooltipDataAttrs={this.getTooltipDataAttrs}
+              onClick={this.handleClick}
+            />
+          </div>
+          <div className="col-12 col-sm-3">
+            <CalendarHeatmap
+              values={this.state.values}
+              startDate="2022-06-01"
+              dir="rtl"
+              horizontal={false}
+              classForValue={(value) => {
+                if (!value) {
+                  return 'color-empty';
+                }
+                return `color-gitlab-${value.count}`;
+              }}
+              showWeekdayLabels={true}
+              showMonthLabels={true}
+              monthLabels={hebMonthLabels}
+              weekdayLabels={hebWeekdayLabels}
+              tooltipDataAttrs={this.getTooltipDataAttrs}
+              onClick={this.handleClick}
+            />
+          </div>
+        </div>
+        <div className="row">
+          <div className="col-12 col-sm-6">
+            <CalendarHeatmap
+              startDate="2022-06-01"
+              values={this.state.values}
+              showWeekdayLabels={true}
+              weekdayLabels={engWeekdayLabels}
               classForValue={(value) => {
                 if (!value) {
                   return 'color-empty';
@@ -72,9 +124,14 @@ class Demo extends React.Component {
               onClick={this.handleClick}
             />
           </div>
-          <div className="col-12 col-sm-6">
+          <div className="col-12 col-sm-3">
             <CalendarHeatmap
               values={this.state.values}
+              startDate="2022-06-01"
+              horizontal={false}
+              showWeekdayLabels={true}
+              showMonthLabels={true}
+              weekdayLabels={engWeekdayLabels}
               classForValue={(value) => {
                 if (!value) {
                   return 'color-empty';
@@ -85,7 +142,7 @@ class Demo extends React.Component {
               onClick={this.handleClick}
             />
           </div>
-        </div>{' '}
+        </div>
         <div className="text-sm-center mt-4">
           <button className="btn btn-link btn-sm text-secondary" onClick={this.generateValues}>
             Regenerate values
