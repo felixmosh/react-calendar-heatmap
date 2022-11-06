@@ -1,14 +1,16 @@
 import React from 'react';
-import { render } from '@testing-library/react';
+import { prettyDOM, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import CalendarHeatmap from './index';
 import { cssSelector, dateNDaysAgo, getISODate, shiftDate, startOfDay } from './helpers';
 import {
   DAYS_IN_WEEK,
+  HORIZONTAL_MONTH_LABELS_SIZE,
   HORIZONTAL_WEEKDAY_LABELS_SIZE,
   LABEL_GUTTER_SIZE,
   SQUARE_SIZE,
 } from './constants';
+import { getNumOfWeeks, getTransformOf } from '../tests/helpers';
 
 describe('CalendarHeatmap', () => {
   const values = [
@@ -315,8 +317,37 @@ describe('CalendarHeatmap props', () => {
 });
 
 describe('layout', () => {
+  it('should add ltr as a default direction', () => {
+    const { container } = render(
+      <CalendarHeatmap
+        startDate={dateNDaysAgo(15)}
+        values={[]}
+        showWeekdayLabels={false}
+        showMonthLabels={false}
+      />,
+    );
+    const direction = container.querySelector('svg').getAttribute('direction');
+
+    expect(direction).toBe('ltr');
+  });
+
+  it('should add rtl direction', () => {
+    const { container } = render(
+      <CalendarHeatmap
+        startDate={dateNDaysAgo(15)}
+        values={[]}
+        dir="rtl"
+        showWeekdayLabels={false}
+        showMonthLabels={false}
+      />,
+    );
+    const direction = container.querySelector('svg').getAttribute('direction');
+
+    expect(direction).toBe('rtl');
+  });
+
   describe('horizontal', () => {
-    it('should render viewBox with gutterSize', () => {
+    it('should render viewBox with padding of LABEL_GUTTER_SIZE', () => {
       const gutterSize = 2;
       const squareWithGutter = SQUARE_SIZE + gutterSize;
 
@@ -335,7 +366,7 @@ describe('layout', () => {
 
       const numOfWeeks = container.querySelectorAll(`.${cssSelector('week')}`).length;
 
-      expect(+width).toBe(squareWithGutter * numOfWeeks);
+      expect(+width).toBe(squareWithGutter * numOfWeeks + LABEL_GUTTER_SIZE * 2);
       expect(+height).toBe(squareWithGutter * DAYS_IN_WEEK + LABEL_GUTTER_SIZE);
     });
 
@@ -348,31 +379,148 @@ describe('layout', () => {
       expect(weekdayLabels.getAttribute('text-anchor')).toBe('end');
     });
 
-    it('should space the weekday labels transform', () => {
-      const gutterSize = 2;
+    describe('LTR', () => {
+      it('should start all-weeks at LABEL_GUTTER_SIZE', () => {
+        const gutterSize = 2;
+        const { container } = render(
+          <CalendarHeatmap
+            startDate={dateNDaysAgo(15)}
+            values={[]}
+            gutterSize={gutterSize}
+            horizontal
+            showWeekdayLabels={false}
+            showMonthLabels={false}
+          />,
+        );
+        const [x] = getTransformOf('all-weeks', container);
 
-      const { container } = render(
-        <CalendarHeatmap
-          startDate={dateNDaysAgo(15)}
-          values={[]}
-          horizontal
-          showWeekdayLabels
-          gutterSize={gutterSize}
-        />,
-      );
+        expect(x).toBe(LABEL_GUTTER_SIZE);
+      });
 
-      const [x] = container
-        .querySelector(`.${cssSelector('weekday-labels')}`)
-        .getAttribute('transform')
-        .slice('transform('.length, -1)
-        .split(', ');
+      it('should start months at the same place as all-weeks', () => {
+        const gutterSize = 2;
+        const { container } = render(
+          <CalendarHeatmap
+            startDate={dateNDaysAgo(15)}
+            values={[]}
+            gutterSize={gutterSize}
+            horizontal
+            showWeekdayLabels={false}
+            showMonthLabels={false}
+          />,
+        );
+        const [x] = getTransformOf('month-labels', container);
 
-      expect(+x).toBe(HORIZONTAL_WEEKDAY_LABELS_SIZE - LABEL_GUTTER_SIZE);
+        expect(x).toBe(LABEL_GUTTER_SIZE);
+      });
+
+      it('should space the weekday labels with a LABEL_GUTTER_SIZE from all-weeks', () => {
+        const gutterSize = 2;
+
+        const { container } = render(
+          <CalendarHeatmap
+            startDate={dateNDaysAgo(15)}
+            values={[]}
+            horizontal
+            showWeekdayLabels
+            gutterSize={gutterSize}
+          />,
+        );
+
+        const [weekdaysX] = getTransformOf('weekday-labels', container);
+        const [allWeekdayX] = getTransformOf('all-weeks', container);
+
+        expect(allWeekdayX - weekdaysX).toBe(LABEL_GUTTER_SIZE);
+      });
+    });
+
+    describe('RTL', () => {
+      it('should place all-weeks first with gutter', () => {
+        const gutterSize = 2;
+        const { container } = render(
+          <CalendarHeatmap
+            startDate={dateNDaysAgo(15)}
+            values={[]}
+            dir="rtl"
+            horizontal
+            showWeekdayLabels
+            gutterSize={gutterSize}
+          />,
+        );
+
+        const [x] = getTransformOf('all-weeks', container);
+
+        expect(x).toBe(LABEL_GUTTER_SIZE);
+      });
+
+      it('should place the weekday labels at the right with a LABEL_GUTTER_SIZE from all-weeks', () => {
+        const gutterSize = 2;
+
+        const { container } = render(
+          <CalendarHeatmap
+            startDate={dateNDaysAgo(15)}
+            values={[]}
+            horizontal
+            dir="rtl"
+            showWeekdayLabels
+            gutterSize={gutterSize}
+          />,
+        );
+
+        const [weekdaysX] = getTransformOf('weekday-labels', container);
+        const [allWeekdayX] = getTransformOf('all-weeks', container);
+
+        const numOfWeeks = getNumOfWeeks(container);
+        const allWeekdayWidth = numOfWeeks * (gutterSize + SQUARE_SIZE);
+
+        expect(weekdaysX - (allWeekdayX + allWeekdayWidth)).toBe(LABEL_GUTTER_SIZE);
+      });
+
+      it('should render weeks backwards first week at the right', () => {
+        const startDate = dateNDaysAgo(15);
+        const { container } = render(
+          <CalendarHeatmap
+            startDate={startDate}
+            values={[{ date: startDate, count: 1 }]}
+            titleForValue={(value) => value && getISODate(value.date)}
+            dir="rtl"
+            horizontal
+            showWeekdayLabels
+          />,
+        );
+
+        const [x] = getTransformOf('week:first-child', container);
+
+        expect(x).toBeGreaterThan(0);
+      });
+
+      it('should render month labels backwards first month at the right', () => {
+        const startDate = '2022-10-01';
+        const { container } = render(
+          <CalendarHeatmap
+            startDate={startDate}
+            endDate="2022-11-30"
+            values={[{ date: startDate, count: 1 }]}
+            dir="rtl"
+            monthLabels={['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']}
+            horizontal
+            showMonthLabels
+          />,
+        );
+
+        const firstMonthLabel = container.querySelector(
+          `.${cssSelector('month-label')}:first-child`,
+        );
+        const x = firstMonthLabel.getAttribute('x');
+
+        expect(+x).toBeGreaterThan(0);
+        expect(firstMonthLabel.textContent).toBe('10');
+      });
     });
   });
 
   describe('vertical', () => {
-    it('should render viewBox with gutterSize', () => {
+    it('should render viewBox with padding of LABEL_GUTTER_SIZE', () => {
       const gutterSize = 2;
       const squareWithGutter = SQUARE_SIZE + gutterSize;
 
@@ -389,10 +537,10 @@ describe('layout', () => {
       const viewBox = container.querySelector('svg').getAttribute('viewBox');
       const [, , width, height] = viewBox.split(' ');
 
-      const numOfWeeks = container.querySelectorAll(`.${cssSelector('week')}`).length;
+      const numOfWeeks = getNumOfWeeks(container);
 
-      expect(+height).toBe(squareWithGutter * numOfWeeks);
-      expect(+width).toBe(squareWithGutter * DAYS_IN_WEEK);
+      expect(+height).toBe(squareWithGutter * numOfWeeks + LABEL_GUTTER_SIZE * 2);
+      expect(+width).toBe(squareWithGutter * DAYS_IN_WEEK + LABEL_GUTTER_SIZE * 2);
     });
 
     it('should anchor the weekday labels to start', () => {
@@ -409,48 +557,239 @@ describe('layout', () => {
       expect(weekdayLabels.getAttribute('text-anchor')).toBe('start');
     });
 
-    it('should transform weekday labels by gutter size', () => {
-      const gutterSize = 2;
+    describe('LTR', () => {
+      it('should ignore month labels width if disabled', () => {
+        const gutterSize = 2;
 
-      const { container } = render(
-        <CalendarHeatmap
-          startDate={dateNDaysAgo(15)}
-          values={[]}
-          horizontal={false}
-          showWeekdayLabels
-          gutterSize={gutterSize}
-        />,
-      );
+        const { container } = render(
+          <CalendarHeatmap
+            startDate={dateNDaysAgo(15)}
+            values={[]}
+            horizontal={false}
+            showWeekdayLabels
+            showMonthLabels={false}
+            gutterSize={gutterSize}
+          />,
+        );
 
-      const [x] = container
-        .querySelector(`.${cssSelector('weekday-labels')}`)
-        .getAttribute('transform')
-        .slice('transform('.length, -1)
-        .split(', ');
+        const [, , x] = container
+          .querySelector('svg')
+          .getAttribute('viewBox')
+          .split(' ')
+          .map((c) => +c.trim());
 
-      expect(+x).toBe(gutterSize);
+        expect(x).toBe(2 * LABEL_GUTTER_SIZE + DAYS_IN_WEEK * (SQUARE_SIZE + gutterSize));
+      });
+
+      it('should transform weekday labels by gutter size', () => {
+        const gutterSize = 2;
+
+        const { container } = render(
+          <CalendarHeatmap
+            startDate={dateNDaysAgo(15)}
+            values={[]}
+            horizontal={false}
+            showWeekdayLabels
+            gutterSize={gutterSize}
+          />,
+        );
+
+        const [x] = getTransformOf('weekday-labels', container);
+
+        expect(x).toBe(LABEL_GUTTER_SIZE);
+      });
+
+      it('should transform weekday rects with padding of LABEL_GUTTER_SIZE', () => {
+        const gutterSize = 2;
+
+        const { container } = render(
+          <CalendarHeatmap
+            startDate={dateNDaysAgo(15)}
+            values={[]}
+            horizontal={false}
+            showWeekdayLabels={false}
+            showMonthLabels={false}
+            gutterSize={gutterSize}
+          />,
+        );
+
+        const [x, y] = getTransformOf('all-weeks', container);
+
+        expect(x).toBe(LABEL_GUTTER_SIZE);
+        expect(y).toBe(LABEL_GUTTER_SIZE);
+      });
+
+      it('should transform weekday rects with padding of LABEL_GUTTER_SIZE when weekdays enabled', () => {
+        const gutterSize = 2;
+
+        const { container } = render(
+          <CalendarHeatmap
+            startDate={dateNDaysAgo(15)}
+            values={[]}
+            horizontal={false}
+            showWeekdayLabels
+            showMonthLabels={false}
+            gutterSize={gutterSize}
+          />,
+        );
+
+        const [x, y] = getTransformOf('all-weeks', container);
+
+        expect(x).toBe(LABEL_GUTTER_SIZE);
+        expect(y).toBe(SQUARE_SIZE * 1.5);
+      });
+
+      it('should start months with the same height of the all-weeks', () => {
+        const gutterSize = 2;
+
+        const { container, rerender } = render(
+          <CalendarHeatmap
+            startDate={dateNDaysAgo(15)}
+            values={[]}
+            horizontal={false}
+            showWeekdayLabels
+            showMonthLabels
+            gutterSize={gutterSize}
+          />,
+        );
+
+        const [, monthsY] = getTransformOf('month-labels', container);
+        const [, allWeeksY] = getTransformOf('all-weeks', container);
+
+        expect(monthsY).toBe(allWeeksY);
+
+        rerender(
+          <CalendarHeatmap
+            startDate={dateNDaysAgo(15)}
+            values={[]}
+            horizontal={false}
+            showWeekdayLabels={false}
+            showMonthLabels
+            gutterSize={gutterSize}
+          />,
+        );
+
+        const [, months2Y] = getTransformOf('month-labels', container);
+        const [, allWeeks2Y] = getTransformOf('all-weeks', container);
+
+        expect(months2Y).toBe(allWeeks2Y);
+      });
+
+      it('should space months with padding of LABEL_GUTTER_SIZE from all-weeks', () => {
+        const gutterSize = 2;
+
+        const { container } = render(
+          <CalendarHeatmap
+            startDate={dateNDaysAgo(15)}
+            values={[]}
+            horizontal={false}
+            showWeekdayLabels
+            showMonthLabels={false}
+            gutterSize={gutterSize}
+          />,
+        );
+
+        const [monthsX] = getTransformOf('month-labels', container);
+        const [allWeeksX] = getTransformOf('all-weeks', container);
+
+        expect(monthsX - (allWeeksX + (gutterSize + SQUARE_SIZE) * DAYS_IN_WEEK)).toBe(
+          LABEL_GUTTER_SIZE,
+        );
+      });
     });
 
-    it('should transform weekday rects by gutter size', () => {
-      const gutterSize = 2;
+    describe('RTL', () => {
+      it('should render days backwards, sunday at the right', () => {
+        const startDate = '2022-10-02';
+        const { container } = render(
+          <CalendarHeatmap
+            startDate={startDate}
+            values={[{ date: startDate, count: 1 }]}
+            dir="rtl"
+            horizontal={false}
+            showWeekdayLabels={false}
+            showMonthLabels={false}
+          />,
+        );
 
-      const { container } = render(
-        <CalendarHeatmap
-          startDate={dateNDaysAgo(15)}
-          values={[]}
-          horizontal={false}
-          showWeekdayLabels
-          gutterSize={gutterSize}
-        />,
-      );
+        const firstDay = container.querySelector(
+          `.${cssSelector('week')}:first-child > rect:first-child`,
+        );
 
-      const [x] = container
-        .querySelector(`.${cssSelector('all-weeks')}`)
-        .getAttribute('transform')
-        .slice('transform('.length, -1)
-        .split(', ');
+        const lastDay = container.querySelector(
+          `.${cssSelector('week')}:first-child > rect:last-child`,
+        );
 
-      expect(+x).toBe(gutterSize);
+        expect(+firstDay.getAttribute('x')).toBeGreaterThan(0);
+        expect(+lastDay.getAttribute('x')).toBe(0);
+      });
+
+      it('should render all-weeks at the right', () => {
+        const gutterSize = 2;
+        const startDate = '2022-10-02';
+        const { container } = render(
+          <CalendarHeatmap
+            startDate={startDate}
+            values={[{ date: startDate, count: 1 }]}
+            dir="rtl"
+            horizontal={false}
+            gutterSize={gutterSize}
+            showWeekdayLabels
+            showMonthLabels
+          />,
+        );
+
+        const [x] = getTransformOf('all-weeks', container);
+
+        expect(x).toBe(LABEL_GUTTER_SIZE + HORIZONTAL_MONTH_LABELS_SIZE);
+      });
+
+      it('should render week days backwards, sunday at the right', () => {
+        const gutterSize = 2;
+        const startDate = '2022-10-02';
+        const weekdayLabels = ['1', '2', '3', '4', '5', '6', '7'];
+        const { container } = render(
+          <CalendarHeatmap
+            startDate={startDate}
+            values={[{ date: startDate, count: 1 }]}
+            dir="rtl"
+            horizontal={false}
+            gutterSize={gutterSize}
+            showWeekdayLabels
+            weekdayLabels={weekdayLabels}
+            showMonthLabels={false}
+          />,
+        );
+
+        const firstDay = container.querySelector(
+          `.${cssSelector('weekday-labels')} text:first-child`,
+        );
+
+        expect(+firstDay.getAttribute('x')).toBe(
+          DAYS_IN_WEEK * (SQUARE_SIZE + gutterSize) - gutterSize,
+        );
+        expect(firstDay.textContent).toBe(weekdayLabels[0]);
+      });
+
+      it('should render months at the left', () => {
+        const gutterSize = 2;
+        const startDate = '2022-10-02';
+        const { container } = render(
+          <CalendarHeatmap
+            startDate={startDate}
+            values={[{ date: startDate, count: 1 }]}
+            dir="rtl"
+            horizontal={false}
+            gutterSize={gutterSize}
+            showMonthLabels
+          />,
+        );
+
+        const [allWeeksX] = getTransformOf('all-weeks', container);
+        const [monthLabelX] = getTransformOf('month-labels', container);
+
+        expect(monthLabelX).toBe(allWeeksX - LABEL_GUTTER_SIZE);
+      });
     });
   });
 });

@@ -1,5 +1,5 @@
 module.exports = {
-  rootDir: 'src',
-  coverageDirectory: '<rootDir>/../coverage',
-  testEnvironment: 'jsdom'
+  modulePathIgnorePatterns: ['<rootDir>/dist/', '<rootDir>/demo/', '"<rootDir>/coverage/"'],
+  coverageDirectory: '<rootDir>/coverage',
+  testEnvironment: 'jsdom',
 };

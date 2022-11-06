@@ -5,9 +5,10 @@ import {
   CSS_PSEDUO_NAMESPACE,
   DAY_LABELS,
   DAYS_IN_WEEK,
+  HORIZONTAL_MONTH_LABELS_SIZE,
   HORIZONTAL_WEEKDAY_LABELS_SIZE,
-  MILLISECONDS_IN_ONE_DAY,
   LABEL_GUTTER_SIZE,
+  MILLISECONDS_IN_ONE_DAY,
   MONTH_LABELS,
   SQUARE_SIZE,
 } from './constants';
@@ -34,7 +35,7 @@ class CalendarHeatmap extends React.Component {
     if (this.props.horizontal) {
       return SQUARE_SIZE + LABEL_GUTTER_SIZE;
     }
-    return 2 * (SQUARE_SIZE + LABEL_GUTTER_SIZE);
+    return HORIZONTAL_MONTH_LABELS_SIZE;
   }
 
   getWeekdayLabelSize() {
@@ -76,19 +77,23 @@ class CalendarHeatmap extends React.Component {
     return Math.ceil(numDaysRoundedToWeek / DAYS_IN_WEEK);
   }
 
-  getWeekWidth() {
+  getWeekHeight() {
     return DAYS_IN_WEEK * this.getSquareSizeWithGutter();
   }
 
   getWidth() {
-    return this.getWeekCount() * this.getSquareSizeWithGutter() + this.getWeekdayLabelSize();
+    return (
+      this.getWeekCount() * this.getSquareSizeWithGutter() +
+      this.getWeekdayLabelSize() +
+      LABEL_GUTTER_SIZE * 2
+    );
   }
 
   getHeight() {
     if (this.props.horizontal) {
-      return this.getWeekWidth() + this.getMonthLabelSize() + LABEL_GUTTER_SIZE;
+      return this.getWeekHeight() + this.getMonthLabelSize() + LABEL_GUTTER_SIZE;
     }
-    return this.getWeekWidth() + this.getMonthLabelSize() + this.getWeekdayLabelSize();
+    return this.getWeekHeight() + this.getMonthLabelSize() + LABEL_GUTTER_SIZE * 2;
   }
 
   getValueCache = memoizeOne((props) =>
@@ -143,33 +148,75 @@ class CalendarHeatmap extends React.Component {
     return tooltipDataAttrs;
   }
 
-  getTransformForWeek(weekIndex) {
+  getTransformForWeek(weekIndex, totalWeeks) {
+    let x;
+    let y;
+
     if (this.props.horizontal) {
-      return `translate(${weekIndex * this.getSquareSizeWithGutter()}, 0)`;
+      const finalWeekIndex = this.props.dir === 'rtl' ? totalWeeks - weekIndex - 1 : weekIndex;
+
+      x = finalWeekIndex * this.getSquareSizeWithGutter();
+      y = 0;
+    } else {
+      x = 0;
+      y = weekIndex * this.getSquareSizeWithGutter();
     }
-    return `translate(0, ${weekIndex * this.getSquareSizeWithGutter()})`;
+    return [x, y];
   }
 
   getTransformForWeekdayLabels() {
+    let x;
+    let y;
+
+    const [allWeeksX] = this.getTransformForAllWeeks();
     if (this.props.horizontal) {
-      return `translate(${HORIZONTAL_WEEKDAY_LABELS_SIZE -
-        LABEL_GUTTER_SIZE}, ${this.getMonthLabelSize()})`;
+      if (this.props.dir === 'rtl') {
+        x = allWeeksX + this.getWeekCount() * this.getSquareSizeWithGutter() + LABEL_GUTTER_SIZE;
+      } else {
+        x = HORIZONTAL_WEEKDAY_LABELS_SIZE;
+      }
+
+      y = this.getMonthLabelSize();
+    } else {
+      x = allWeeksX;
+      y = 0;
     }
-    return `translate(${this.props.gutterSize}, 0)`;
+
+    return [x, y];
   }
 
   getTransformForMonthLabels() {
+    let x;
+    let y;
+    const [allWeeksX, allWeeksY] = this.getTransformForAllWeeks();
     if (this.props.horizontal) {
-      return `translate(${this.getWeekdayLabelSize()}, 0)`;
+      x = allWeeksX;
+      y = 0;
+    } else {
+      x =
+        this.props.dir === 'rtl'
+          ? allWeeksX - LABEL_GUTTER_SIZE
+          : this.getWeekHeight() + allWeeksX + LABEL_GUTTER_SIZE;
+      y = allWeeksY;
     }
-    return `translate(${this.getWeekWidth() + LABEL_GUTTER_SIZE}, ${this.getWeekdayLabelSize()})`;
+    return [x, y];
   }
 
   getTransformForAllWeeks() {
+    let x;
+    let y;
+
+    const weekdayLabelSize = this.getWeekdayLabelSize();
+    const monthLabelSize = this.getMonthLabelSize();
     if (this.props.horizontal) {
-      return `translate(${this.getWeekdayLabelSize()}, ${this.getMonthLabelSize()})`;
+      x = (this.props.dir === 'rtl' ? 0 : weekdayLabelSize) + LABEL_GUTTER_SIZE;
+      y = monthLabelSize;
+    } else {
+      x = (this.props.dir === 'rtl' ? monthLabelSize : 0) + LABEL_GUTTER_SIZE;
+      y = weekdayLabelSize || LABEL_GUTTER_SIZE;
     }
-    return `translate(${this.props.gutterSize}, ${this.getWeekdayLabelSize()})`;
+
+    return [x, y];
   }
 
   getViewBox() {
@@ -183,22 +230,32 @@ class CalendarHeatmap extends React.Component {
     if (this.props.horizontal) {
       return [0, dayIndex * this.getSquareSizeWithGutter()];
     }
-    return [dayIndex * this.getSquareSizeWithGutter(), 0];
+    return [
+      (this.props.dir === 'rtl' ? DAYS_IN_WEEK - dayIndex - 1 : dayIndex) *
+        this.getSquareSizeWithGutter(),
+      0,
+    ];
   }
 
   getWeekdayLabelCoordinates(dayIndex) {
     if (this.props.horizontal) {
       return [0, (dayIndex + 1) * SQUARE_SIZE + dayIndex * this.props.gutterSize];
     }
-    return [dayIndex * SQUARE_SIZE + dayIndex * this.props.gutterSize, SQUARE_SIZE];
+
+    const x =
+      (this.props.dir === 'rtl' ? DAYS_IN_WEEK - dayIndex : dayIndex) *
+      this.getSquareSizeWithGutter();
+
+    return [x - (this.props.dir === 'rtl' ? this.props.gutterSize : 0), SQUARE_SIZE];
   }
 
-  getMonthLabelCoordinates(weekIndex) {
+  getMonthLabelCoordinates(weekIndex, totalWeeks) {
     if (this.props.horizontal) {
-      return [
-        weekIndex * this.getSquareSizeWithGutter(),
-        this.getMonthLabelSize() - LABEL_GUTTER_SIZE,
-      ];
+      const x =
+        this.props.dir === 'rtl'
+          ? (totalWeeks - weekIndex + 1) * this.getSquareSizeWithGutter() - this.props.gutterSize
+          : weekIndex * this.getSquareSizeWithGutter();
+      return [x, this.getMonthLabelSize() - LABEL_GUTTER_SIZE];
     }
     const verticalOffset = -2;
     return [0, (weekIndex + 1) * this.getSquareSizeWithGutter() + verticalOffset];
@@ -255,11 +312,11 @@ class CalendarHeatmap extends React.Component {
     return transformDayElement ? transformDayElement(rect, value, index) : rect;
   }
 
-  renderWeek(weekIndex) {
+  renderWeek(weekIndex, totalWeeks) {
     return (
       <g
         key={weekIndex}
-        transform={this.getTransformForWeek(weekIndex)}
+        transform={`translate(${this.getTransformForWeek(weekIndex, totalWeeks).join(', ')})`}
         className={cssSelector(`week`)}
       >
         {getRange(DAYS_IN_WEEK).map((dayIndex) =>
@@ -270,17 +327,19 @@ class CalendarHeatmap extends React.Component {
   }
 
   renderAllWeeks() {
-    return getRange(this.getWeekCount()).map((weekIndex) => this.renderWeek(weekIndex));
+    const totalWeeks = this.getWeekCount();
+    return getRange(totalWeeks).map((weekIndex) => this.renderWeek(weekIndex, totalWeeks));
   }
 
   renderMonthLabels() {
     if (!this.props.showMonthLabels) {
       return null;
     }
-    const weekRange = getRange(this.getWeekCount() - 1); // don't render for last week, because label will be cut off
-    return weekRange.map((weekIndex) => {
+
+    const totalWeeks = this.getWeekCount() - 1; // don't render for last week, because label will be cut off
+    return getRange(totalWeeks).map((weekIndex) => {
       const endOfWeek = shiftDate(this.getStartDateWithEmptyDays(), (weekIndex + 1) * DAYS_IN_WEEK);
-      const [x, y] = this.getMonthLabelCoordinates(weekIndex);
+      const [x, y] = this.getMonthLabelCoordinates(weekIndex, totalWeeks);
       return endOfWeek.getDate() >= 1 && endOfWeek.getDate() <= DAYS_IN_WEEK ? (
         <text key={weekIndex} x={x} y={y} className={cssSelector('month-label')}>
           {this.props.monthLabels[endOfWeek.getMonth()]}
@@ -311,15 +370,25 @@ class CalendarHeatmap extends React.Component {
     this.valueCache = this.getValueCache(this.props);
 
     return (
-      <svg className={CSS_PSEDUO_NAMESPACE} viewBox={this.getViewBox()}>
-        <g transform={this.getTransformForMonthLabels()} className={cssSelector('month-labels')}>
+      <svg
+        className={`${CSS_PSEDUO_NAMESPACE}`}
+        viewBox={this.getViewBox()}
+        direction={this.props.dir}
+      >
+        <g
+          transform={`translate(${this.getTransformForMonthLabels().join(', ')})`}
+          className={cssSelector('month-labels')}
+        >
           {this.renderMonthLabels()}
         </g>
-        <g transform={this.getTransformForAllWeeks()} className={cssSelector('all-weeks')}>
+        <g
+          transform={`translate(${this.getTransformForAllWeeks().join(', ')})`}
+          className={cssSelector('all-weeks')}
+        >
           {this.renderAllWeeks()}
         </g>
         <g
-          transform={this.getTransformForWeekdayLabels()}
+          transform={`translate(${this.getTransformForWeekdayLabels().join(', ')})`}
           className={cssSelector('weekday-labels')}
           textAnchor={this.props.horizontal ? 'end' : 'start'}
         >
@@ -353,6 +422,7 @@ CalendarHeatmap.propTypes = {
   onMouseOver: PropTypes.func, // callback function when mouse pointer is over a square
   onMouseLeave: PropTypes.func, // callback function when mouse pointer is left a square
   transformDayElement: PropTypes.func, // function to further transform the svg element for a single day
+  dir: PropTypes.oneOf(['ltr', 'rtl']),
 };
 
 CalendarHeatmap.defaultProps = {
@@ -372,6 +442,7 @@ CalendarHeatmap.defaultProps = {
   onMouseOver: null,
   onMouseLeave: null,
   transformDayElement: null,
+  dir: 'ltr',
 };
 
 export default CalendarHeatmap;

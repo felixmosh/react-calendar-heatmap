@@ -23,3 +23,4 @@ export const SQUARE_SIZE = 10;
 export const LABEL_GUTTER_SIZE = 4;
 export const CSS_PSEDUO_NAMESPACE = 'react-calendar-heatmap';
 export const HORIZONTAL_WEEKDAY_LABELS_SIZE = 30;
+export const HORIZONTAL_MONTH_LABELS_SIZE = 2 * (SQUARE_SIZE + LABEL_GUTTER_SIZE);
